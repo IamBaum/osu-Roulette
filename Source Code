@@ -1,0 +1,411 @@
+# osu-Roulette
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <conio.h>
+#include <random>
+#include <time.h>
+#include <math.h>
+#include <regex>
+#include <cmath>
+#include <Shobjidl.h>
+
+using namespace std;
+
+ofstream Storyboard;
+ofstream create;
+string Artist = "Artist";
+string Title = "Title";
+string Creator = "Creator";
+string Version = "Version";
+
+string GetPartial(string line, int offset)
+{
+	while (offset > 0)
+	{
+		line = line.substr(line.find(",") + 1);
+		offset--;
+	}
+	line = line.substr(0, line.find(","));
+	return line;
+}
+
+int GetObjectType(int Type)
+{
+	/*
+	Read the pos_x variable and determine the Object Type.
+	0-127	- Left
+	128-255	- Down
+	256-383	- Up
+	384-512	- Right
+	*/
+
+	int Column;
+
+	if (Type < 128)
+	{
+		Column = 0;
+	}
+	else if (Type < 256)
+	{
+		Column = 1;
+	}
+	else if (Type < 384)
+	{
+		Column = 2;
+	}
+	else if (Type < 512)
+	{
+		Column = 3;
+	}
+	return Column;
+};
+
+
+void main()
+{
+	ifstream Beatmap("Beatmap.txt");
+	string CurrentLine = "0";
+
+	/*	Beatmap Section 0 = Beatmap Information
+		Beatmap Section 1 = Timing Section
+		Beatmap Section 2 = Notes Section  */
+
+	int Beatmap_Section = 0;
+	int ObjectType = 0;
+	int Time_Interval = 0;
+	int BPM_Start_Time = 0;
+	double BPM_Value = 0;
+	int pos_x = 0;
+	int offset = 0;
+	int Circle_Positions[32][2] = { {320,60},
+									{272.726, 62.02138},
+									{226.1945, 67.70137},
+									{182.1945, 78.70138},
+									{136.8822, 96.90958},
+									{93.67397, 121.1178},
+									{55.40274, 153.1041},
+									{27.70137, 191.7014},
+									{18.5, 240},
+									{26.49733, 282.7008},
+									{48.75098, 318.4292},
+									{84.09351, 352.1732},
+									{127.0084, 379.0479},
+									{173.7793, 397.6866},
+									{223.1208, 410.7201},
+									{270.71, 418.1512},
+									{320, 420},
+									{364.6549, 417.9786},
+									{412.7508, 411.5125},
+									{458.9782, 399.7893},
+									{509.2763, 379.7941},
+									{553.0936, 354.0173},
+									{590.3752, 320.9991},
+									{612.2986, 282.5068},
+									{621.5399, 240.2449},
+									{613.2986, 197.6877},
+									{589.389, 159.6877},
+									{556.0768, 127.1808},
+									{513.3754, 102.389},
+									{466.5835, 82.49315},
+									{420.1945, 68.89589},
+									{371.8434, 62.10888} };
+	int Note_Positions[8] = {180, 220, 260, 300, 340, 380, 420, 460 };
+
+
+
+	/*---------------------------------------------------------
+	----------------- Reading the Beatmap File ----------------
+	-----------------------------------------------------------*/
+
+	//Preperation for the Storyboard.
+	while (getline(Beatmap, CurrentLine))
+	{
+		//  Reading the Beatmap Information for the Filename
+		if (Beatmap_Section == 0)
+		{
+			if (CurrentLine.find("Artist:") == 0)
+				Artist = CurrentLine.substr(CurrentLine.find(":") + 1);
+
+			if (CurrentLine.find("Title:") == 0)
+				Title = CurrentLine.substr(CurrentLine.find(":") + 1);
+
+			if (CurrentLine.find("Creator:") == 0)
+				Creator = CurrentLine.substr(CurrentLine.find(":") + 1);
+
+			if (CurrentLine.find("Version:") == 0)
+				Version = CurrentLine.substr(CurrentLine.find(":") + 1);
+		}
+
+		// Analyzing the Timing Invervals
+		if (Beatmap_Section == 1)
+		{
+			BPM_Start_Time = std::stoi(GetPartial(CurrentLine, 0));
+			BPM_Value = std::stoi(GetPartial(CurrentLine, 1));
+			Beatmap_Section = 0;
+		}
+
+		// Creation of the .osb File
+		if (Beatmap_Section == 2)
+		{
+			offset = std::stoi(GetPartial(CurrentLine, 2));
+		}
+
+		// Condition to switch the commands, for the different Sections.
+		if (CurrentLine.find("[TimingPoints]") == 0)
+			Beatmap_Section = 1;
+
+		if (CurrentLine.find("[HitObjects]") == 0)
+			Beatmap_Section = 2;
+	}
+
+	// Creation of the Storyboard File.
+	string FileNameOsb = Artist + " - " + Title + " (" + Creator + ").osb";
+
+	//ofstream create(FileNameOsb);
+	Storyboard.open(FileNameOsb);
+
+	/*---------------------------------------------------------
+	----------------- Creation of the Overlay -----------------
+	-----------------------------------------------------------*/
+
+//	BPM_Value = BPM_Value + 2;
+
+	Storyboard << "[General]" << endl;
+	Storyboard << "UseSkinSprites: 1\n" << endl;
+	Storyboard << "[Events]" << endl;
+	Storyboard << "//Background and Video events" << endl;
+	Storyboard << "//Storyboard Layer 0 (Background)" << endl;
+
+	Storyboard << "Sprite,Background,Centre," << '"' << "SB/Playfield.png" << '"' << ", 320, 240" << endl;
+	Storyboard << " M,0," << BPM_Start_Time - (BPM_Value * 16) << ',' << offset + 2000 << ",320,240" << endl;
+	Storyboard << " F,0," << BPM_Start_Time - (BPM_Value * 16) << "," << BPM_Start_Time - (BPM_Value * 12) << "," << 0 << "," << 1 << endl;
+	Storyboard << " S,0," << BPM_Start_Time << ",,0.45" << endl;
+
+	Storyboard << "Sprite,Background,Centre," << '"' << "SB/Hit Zone.png" << '"' << ", 320, 240" << endl;
+	Storyboard << " M,0," << BPM_Start_Time - (BPM_Value * 16) << ',' << offset + 2000 << ",320,240" << endl;
+	Storyboard << " F,0," << BPM_Start_Time - (BPM_Value * 16) << "," << BPM_Start_Time - (BPM_Value * 12) << "," << 0 << "," << 1 << endl;
+	Storyboard << " S,0," << BPM_Start_Time << ",,0.45" << endl;
+
+
+	// Timing Indicator Body
+	Storyboard << "Sprite,Background,Centre," << '"' << "SB/Note Timing Indicator.png" << '"' << ", 320, 240" << endl;
+	Storyboard << " L," << BPM_Start_Time - (BPM_Value * 16) << ",40" << endl;
+	Storyboard << "  M,0,0," << (BPM_Value * 4) << ",140,240,460,240" << endl;
+	Storyboard << "  F,0,0," << floor(BPM_Value * 0.25) << ",0,0" << endl;
+	Storyboard << "  F,0," << floor(BPM_Value * 0.25) << ",,1" << endl;
+	Storyboard << " F,0," << BPM_Start_Time - (BPM_Value * 16) << "," << BPM_Start_Time - (BPM_Value * 12) << "," << 0 << "," << 1 << endl;
+	Storyboard << " S,0," << BPM_Start_Time << ",,0.59" << endl;
+
+	// Timing Indictator Ending
+	Storyboard << "Sprite,Background,Centre," << '"' << "SB/Note Timing Indicator.png" << '"' << ", 320, 240" << endl;
+	Storyboard << " L," << BPM_Start_Time - floor((BPM_Value * 15.75)) << ",40" << endl;
+	Storyboard << "  M,0,0," << floor(BPM_Value * 3.75) << ",-200, -200" << endl;
+	Storyboard << "  M,0," << floor(BPM_Value * 3.75) << ',' <<BPM_Value * 4  << ",460,240,483,240" << endl;
+	Storyboard << " S,0," << BPM_Start_Time << ",,0.59" << endl;
+
+// ------------ BPM Noten Zyklus -----------
+	int Max_Cycles = floor((offset + BPM_Start_Time) / (BPM_Value * 4));
+	int Time_Cycle[9999][4];
+	int Cycle_Offset = BPM_Start_Time;
+	int Current_Time_Cycle = 0;
+	int Note_Cycle_Position = 0;
+
+	for (int Dummy = 0; Dummy < Max_Cycles; Dummy++)
+	{
+		for (int Dummy2 = 0; Dummy2 < 4; Dummy2++)
+		{
+			Time_Cycle[Dummy][Dummy2] = Cycle_Offset;
+			Cycle_Offset = Cycle_Offset + BPM_Value;
+		}
+	}
+	
+	/*
+	for (int Dummy = 0; Dummy < 32; Dummy++)
+	{
+		Storyboard << "Sprite,Background,Centre," << '"' << "SB/HitEffect.png" << '"' << ", 320, 240" << endl;
+		Storyboard << " M,0," << BPM_Start_Time - (BPM_Value * 16) << ',' << offset + 2000 << "," << Circle_Positions[Dummy][0] << "," << Circle_Positions[Dummy][1] << endl;
+		Storyboard << " S,0," << BPM_Start_Time << ",,0.22" << endl;
+	} */
+
+	Storyboard << "Sprite,Background,Centre," << '"' << "SB/Timing Indicator.png" << '"' << ", 320, 240" << endl;
+	Storyboard << " L," << BPM_Start_Time - (BPM_Value * 16) << ",20" << endl;
+	Storyboard << "  S,0,0,0,0.135" << endl;
+	Storyboard << "  M,0,0," << ceil(0.5 + BPM_Value * 0.5) << ",320, 60, 272.726, 62.02138" << endl;
+	Storyboard << "  R,0,0," << ceil(0.5 + BPM_Value * 0.5) << ", 6.28, 6.19718" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 0.5) << ',' << BPM_Value * 1 << ",272.726, 62.02138, 226.1945, 67.70137" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 0.5) << ',' << BPM_Value * 1 << ", 6.19718, 6.11116" << endl;
+	Storyboard << "  M,0," << BPM_Value * 1 << ',' << ceil(0.5 + BPM_Value * 1.5) << ", 226.1945, 67.70137, 182.1945, 78.70138" << endl;
+	Storyboard << "  R,0," << BPM_Value * 1 << ',' << ceil(0.5 + BPM_Value * 1.5) << ", 6.11116, 5.962038" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 1.5) << ',' << BPM_Value * 2 << ", 182.1945, 78.70138, 136.8822, 96.90958" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 1.5) << ',' << BPM_Value * 2 << ", 5.962038, 5.852213" << endl;
+	Storyboard << "  M,0," << BPM_Value * 2 << ',' << ceil(0.5 + BPM_Value * 2.5) << ", 136.8822, 96.90958, 93.67397, 121.1178" << endl;
+	Storyboard << "  R,0," << BPM_Value * 2 << ',' << ceil(0.5 + BPM_Value * 2.5) << ", 5.852213, 5.693346" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 2.5) << ',' << BPM_Value * 3 << ", 93.67397, 121.1178, 55.40274, 153.1041" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 2.5) << ',' << BPM_Value * 3 << ", 5.693346, 5.506511" << endl;
+	Storyboard << "  M,0," << BPM_Value * 3 << ',' << ceil(0.5 + BPM_Value * 3.5) << ", 55.40274, 153.1041, 27.70137, 191.7014" << endl;
+	Storyboard << "  R,0," << BPM_Value * 3 << ',' << ceil(0.5 + BPM_Value * 3.5) << ", 5.506511, 5.179618" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 3.5) << ',' << BPM_Value * 4 << ", 27.70137, 191.7014, 18.5, 240" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 3.5) << ',' << BPM_Value * 4 << ", 5.179618, 4.71" << endl;
+	Storyboard << "  M,0," << BPM_Value * 4 << ',' << ceil(0.5 + BPM_Value * 4.5) << ", 18.5, 240, 26.49733, 282.7008" << endl;
+	Storyboard << "  R,0," << BPM_Value * 4 << ',' << ceil(0.5 + BPM_Value * 4.5) << ", 4.71, 4.346632" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 4.5) << ',' << BPM_Value * 5 << ", 26.49733, 282.7008, 48.75098, 318.4292" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 4.5) << ',' << BPM_Value * 5 << ", 4.346632, 4.076217" << endl;
+	Storyboard << "  M,0," << BPM_Value * 5 << ',' << ceil(0.5 + BPM_Value * 5.5) << ", 48.75098, 318.4292, 84.09351, 352.1732" << endl;
+	Storyboard << "  R,0," << BPM_Value * 5 << ',' << ceil(0.5 + BPM_Value * 5.5) << ", 4.076217, 3.82215" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 5.5) << ',' << BPM_Value * 6 << ", 84.09351, 352.1732, 127.0084, 379.0479" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 5.5) << ',' << BPM_Value * 6 << ", 3.82215, 3.685888" << endl;
+	Storyboard << "  M,0," << BPM_Value * 6 << ',' << ceil(0.5 + BPM_Value * 6.5) << ", 127.0084, 379.0479, 173.7793, 397.6866" << endl;
+	Storyboard << "  R,0," << BPM_Value * 6 << ',' << ceil(0.5 + BPM_Value * 6.5) << ", 3.685888, 3.535599" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 6.5) << ',' << BPM_Value * 7 << ", 173.7793, 397.6866, 223.1208, 410.7201" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 6.5) << ',' << BPM_Value * 7 << ", 3.535599, 3.404003" << endl;
+	Storyboard << "  M,0," << BPM_Value * 7 << ',' << ceil(0.5 + BPM_Value * 7.5) << ", 223.1208, 410.7201, 270.71, 418.1512" << endl;
+	Storyboard << "  R,0," << BPM_Value * 7 << ',' << ceil(0.5 + BPM_Value * 7.5) << ", 3.404003, 3.286435" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 7.5) << ',' << BPM_Value * 8 << ", 270.71, 418.1512, 320, 420" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 7.5) << ',' << BPM_Value * 8 << ", 3.286435, 3.14" << endl;
+	Storyboard << "  M,0," << BPM_Value * 8 << ',' << ceil(0.5 + BPM_Value * 8.5) << ",320,420,364.6549,417.9786" << endl;
+	Storyboard << "  R,0," << BPM_Value * 8 << ',' << ceil(0.5 + BPM_Value * 8.5) << ",3.14,3.05718" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 8.5) << ',' << BPM_Value * 9 << ",364.6549,417.9786,412.7508,411.5125" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 8.5) << ',' << BPM_Value * 9 << ",3.05718,2.943105" << endl;
+	Storyboard << "  M,0," << BPM_Value * 9 << ',' << ceil(0.5 + BPM_Value * 9.5) << ",412.7508,411.5125,458.9782,399.7893" << endl;
+	Storyboard << "  R,0," << BPM_Value * 9 << ',' << ceil(0.5 + BPM_Value * 9.5) << ",2.943105,2.826708" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 9.5) << ',' << BPM_Value * 10 << ",458.9782,399.7893,509.2763,379.7941" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 9.5) << ',' << BPM_Value * 10 << ",2.826708,2.659841" << endl;
+	Storyboard << "  M,0," << BPM_Value * 10 << ',' << ceil(0.5 + BPM_Value * 10.5) << ",509.2763,379.7941,553.0936,354.0173" << endl;
+	Storyboard << "  R,0," << BPM_Value * 10 << ',' << ceil(0.5 + BPM_Value * 10.5) << ",2.659841,2.528075" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 10.5) << ',' << BPM_Value * 11 << ",553.0936,354.0173,590.3752,320.9991" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 10.5) << ',' << BPM_Value * 11 << ",2.528075,2.209372" << endl;
+	Storyboard << "  M,0," << BPM_Value * 11 << ',' << ceil(0.5 + BPM_Value * 11.5) << ",590.3752,320.9991,612.2986, 282.5068" << endl;
+	Storyboard << "  R,0," << BPM_Value * 11 << ',' << ceil(0.5 + BPM_Value * 11.5) << ",2.209372,1.89067" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 11.5) << ',' << BPM_Value * 12 << ",612.2986, 282.5068,621.5399,240.2449" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 11.5) << ',' << BPM_Value * 12 << ",1.89067,1.57" << endl;
+	Storyboard << "  M,0," << BPM_Value * 12 << ',' << ceil(0.5 + BPM_Value * 12.5) << ",621.5399,240.2449,613.2986, 197.6877" << endl;
+	Storyboard << "  R,0," << BPM_Value * 12 << ',' << ceil(0.5 + BPM_Value * 12.5) << ",1.57,1.374961" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 12.5) << ',' << BPM_Value * 13 << ",613.2986, 197.6877,589.389, 159.6877" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 12.5) << ',' << BPM_Value * 13 << ",1.374961,0.9823276" << endl;
+	Storyboard << "  M,0," << BPM_Value * 13 << ',' << ceil(0.5 + BPM_Value * 13.5) << ",589.389, 159.6877,556.0768, 127.1808" << endl;
+	Storyboard << "  R,0," << BPM_Value * 13 << ',' << ceil(0.5 + BPM_Value * 13.5) << ",0.9823276,0.8187746" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 13.5) << ',' << BPM_Value * 14 << ",556.0768, 127.1808,513.3754, 102.389" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 13.5) << ',' << BPM_Value * 14 << ",0.8187746,0.5991118" << endl;
+	Storyboard << "  M,0," << BPM_Value * 14 << ',' << ceil(0.5 + BPM_Value * 14.5) << ",513.3754, 102.389,466.5835, 82.49315" << endl;
+	Storyboard << "  R,0," << BPM_Value * 14 << ',' << ceil(0.5 + BPM_Value * 14.5) << ",0.5991118,0.4074824" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 14.5) << ',' << BPM_Value * 15 << ",466.5835, 82.49315,420.1945, 68.89589" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 14.5) << ',' << BPM_Value * 15 << ",0.4074824,0.2719339" << endl;
+	Storyboard << "  M,0," << BPM_Value * 15 << ',' << ceil(0.5 + BPM_Value * 15.5) << ",420.1945, 68.89589,371.8434,62.10888" << endl;
+	Storyboard << "  R,0," << BPM_Value * 15 << ',' << ceil(0.5 + BPM_Value * 15.5) << ",0.2719339,0.06624842" << endl;
+	Storyboard << "  M,0," << ceil(0.5 + BPM_Value * 15.5) << ',' << BPM_Value * 16 << ",371.8434,62.10888,320,60" << endl;
+	Storyboard << "  R,0," << ceil(0.5 + BPM_Value * 15.5) << ',' << BPM_Value * 16 << ",0.06624842,0." << endl;
+
+
+	Storyboard << "//Storyboard Layer 1 (Fail)" << endl;
+	Storyboard << "//Storyboard Layer 2 (Pass)" << endl;
+	Storyboard << "//Storyboard Layer 3 (Foreground)" << endl;
+
+	Beatmap.close();
+	Beatmap.open("Beatmap.txt");
+	Beatmap_Section = 0;
+
+	int Offset_Circle = 0;
+	int Offset_Notes = 0;
+	int Circle_Note_Position = 0;
+	int Inner_Note_Position = 0;
+	//Creation of the Storyboard
+	while (getline(Beatmap, CurrentLine))
+	{
+		// Creation of the .osb File
+		if (Beatmap_Section == 2)
+		{
+			pos_x = std::stoi(GetPartial(CurrentLine, 0));
+			offset = std::stoi(GetPartial(CurrentLine, 2));
+
+			ObjectType = GetObjectType(pos_x);
+			Offset_Circle = BPM_Start_Time;
+
+			// Position of the Circle Notes.
+			for (Circle_Note_Position = 31; Offset_Circle < (offset + 10); Circle_Note_Position = Circle_Note_Position)
+			{
+				Offset_Circle = Offset_Circle + (BPM_Value * 0.5);
+
+				Circle_Note_Position++;
+				if (Circle_Note_Position == 32)
+				{
+					Circle_Note_Position = 0;
+				}
+			}
+
+			// Position for the Inner Notes.
+			Offset_Notes = BPM_Start_Time;
+			for (Inner_Note_Position = 6; Offset_Notes < (offset + 10); Inner_Note_Position = Inner_Note_Position)
+			{
+				Offset_Notes = Offset_Notes + (BPM_Value * 0.5);
+
+				Inner_Note_Position++;
+				if (Inner_Note_Position == 8)
+				{
+					Inner_Note_Position = 0;
+				}
+			}
+
+
+// ---------- Inner Note Positioning -----------
+			int Current_time_Cycle = 0;
+			for (Note_Cycle_Position = 0; offset > Time_Cycle[Current_Time_Cycle][Note_Cycle_Position]; Note_Cycle_Position++)
+			{
+				if (Note_Cycle_Position == 4)
+				{
+					Current_Time_Cycle++;
+				}
+			}
+
+			int *Position;
+			Position = &Note_Cycle_Position;
+
+			// Creation of the Inner_Notes
+			Storyboard << "Sprite,Foreground,Centre," << '"' << "SB/";
+			switch (ObjectType)
+			{
+			case 0: Storyboard << "Left"; break;
+			case 1: Storyboard << "Down"; break;
+			case 2: Storyboard << "Up"; break;
+			case 3: Storyboard << "Right"; break;
+			}
+			Storyboard << ".png" << '"' << ", 320, 240" << endl;
+			Storyboard << " M,0," << Time_Cycle[Current_Time_Cycle][0] << ',' << Time_Cycle[Current_Time_Cycle + 1][0] << ',' << Note_Positions[Inner_Note_Position] << ",240" << endl;
+			Storyboard << " S,0," << offset << ",,0.45" << endl;
+
+
+			// Creation of Circle_Notes
+			Storyboard << "Sprite,Foreground,Centre," << '"' << "SB/Circle.png" << '"' << ", 320, 240" << endl;
+			Storyboard << " M,0," << offset - BPM_Value * 12 << ',' << offset + floor((BPM_Value * 1)) << ',' << Circle_Positions[Circle_Note_Position][0] << ',' << Circle_Positions[Circle_Note_Position][1] << endl;
+			Storyboard << " S,0," << offset << ",,0.12" << endl;
+		}
+
+		// Condition to switch the commands, for the different Sections.
+		if (CurrentLine.find("[TimingPoints]") == 0)
+			Beatmap_Section = 1;
+
+		if (CurrentLine.find("[HitObjects]") == 0)
+			Beatmap_Section = 2;
+	}
+	Storyboard << "//Storyboard Sound Samples" << endl;
+
+	/*
+	Storyboard Samples:
+
+	Sprite Creation:
+	Sprite,Foreground,Centre,"SB/Pointer.png",320,240
+	Rotation:
+	R,0,148308,148422,0,6.283
+	Movement:
+	M,0,148308,148877,111,114,339,268
+	Stable Size:
+	S,0,148308,,0.575
+	Unstable Size:
+	S,0,148308,148763,0.2144655,0.7545201
+	Fade Out:
+	F,0,18081,18308,1,0
+	*/
+}
